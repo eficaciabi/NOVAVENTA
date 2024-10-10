@@ -1,0 +1,48 @@
+﻿/*-----------------------------------------------------------------------------------------------------------------------------------------------
+Compañia: 		Eficacia S.A
+Proceso:		Transformacion Asesor
+Desarrollador: 	María de los Ángeles Delgado
+Email:			maria_adelgado@eficacia.com.co
+Fecha			2024/03/19 (YYYY/MM/DD)
+-----------------------------------------------------------------------------------------------------------------------------------------------*/
+Asesor_Tmp1:
+    LOAD
+        ASESOR_ID,
+        NOMBRE,
+        APELLIDO,
+        ROL,
+        NOMBRE_JEFE,
+        ROL_JEFE
+    FROM 
+    [lib://COMP_Stage (eficacia_admin_analitica)/SGI/Colombia/NOVAVENTA/IPV_Asesor.qvd]
+    (qvd);
+
+/**************** Transformación ****************/
+NoConcatenate
+Asesor_Tmp2:
+    LOAD
+        ASESOR_ID                                 as Id,
+        Capitalize(NOMBRE)                        as Nombre,
+        Capitalize(APELLIDO)                      as Apellido,
+        Capitalize(ROL)						      as Rol,
+        Capitalize(NOMBRE_JEFE)                   as Jefe,
+        Capitalize(NOMBRE&' '&APELLIDO) 	      as NombreCompleto,
+        Capitalize(ROL_JEFE)                      as RolJefe
+    Resident Asesor_Tmp1
+    Where Not WildMatch(ASESOR_ID,51528,51527,51529);
+    Drop Table Asesor_Tmp1;
+
+/*----------*/
+NoConcatenate
+Asesor:
+    LOAD Distinct
+        Id                                      as SK.Persona,
+        Rol				                        as Asesor.Rol,
+        RolJefe 		                        as Asesor.RolJefe,
+        Jefe                                    as Asesor.Jefe,
+        NombreCompleto	                        as Asesor.NombreCompleto
+    Resident Asesor_Tmp2;
+    Drop Table Asesor_Tmp2;
+
+STORE Asesor INTO [lib://COMP_DataMart (eficacia_admin_analitica)/SGI/Colombia/NOVAVENTA/_Asesor.qvd];
+Drop Table Asesor;

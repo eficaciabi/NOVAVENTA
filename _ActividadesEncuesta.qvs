@@ -1,0 +1,149 @@
+﻿/*-----------------------------------------------------------------------------------------------------------------------------------------------
+Compañia: 		Eficacia S.A
+Proceso:		Transformacion Asesor
+Desarrollador: 	María de los Ángeles Delgado
+Email:			maria_adelgado@eficacia.com.co
+Fecha			2024/03/19 (YYYY/MM/DD)
+-----------------------------------------------------------------------------------------------------------------------------------------------*/
+Actividades_Tmp:
+	LOAD 
+	     ID_SUCURSAL            as IdPuntoVenta, 
+	     PREGUNTA               as Pregunta, 
+	     ID_USUARIO             as IdPersonal, 
+	     SECCION                as Seccion, 
+	     FECHA_VISITA           as _Fecha, 
+	     RESPUESTA_1            as RespuestaUno, 
+	     RESPUESTA_2            as RespuestaDos, 
+	     ID_REGISTRO            as IdRegistro
+	FROM
+    [lib://COMP_Stage (eficacia_admin_analitica)/SGI/Colombia/NOVAVENTA\En_Actividades_$(Anno)$(Mes)*.qvd]
+    (qvd);
+
+/**************** Transformación ****************/  
+NoConcatenate
+Actividades_Tmp1:
+     LOAD
+          RespuestaUno,
+          RespuestaDos, 
+          IdPuntoVenta, 
+          IdPersonal, 
+          Pregunta,
+          Seccion,
+          DATE(left(date(_Fecha,'DD/MM/YYYY'),10),'YYYY/MM/DD')            as Fecha,
+          IdRegistro
+     Resident Actividades_Tmp
+     Where Not WildMatch(IdPersonal,51528,51527,51529);
+     Drop Table Actividades_Tmp;
+
+/*----------*/
+Map_RespuestaUno:
+    Mapping
+    Load    
+        IdPuntoVenta&IdPersonal&IdRegistro&Seccion&Pregunta,
+        RespuestaUno
+    Resident  Actividades_Tmp1;
+
+/*----------*/
+Map_RespuestaDos:
+    Mapping
+    Load    
+        IdPuntoVenta&IdPersonal&IdRegistro&Seccion&Pregunta,
+        RespuestaDos
+    Resident  Actividades_Tmp1;
+    
+/*----------*/
+NoConcatenate
+Actividades_Tmp2:
+    LOAD
+        IdPuntoVenta, 
+        IdPersonal,
+        Fecha,
+        IdRegistro,
+        Seccion,
+        Applymap('Map_RespuestaDos', IdPuntoVenta&IdPersonal&IdRegistro&Seccion&'REGISTRO FOTOGRAFICO', Null())                                                          as Foto1,
+        Applymap('Map_RespuestaDos', IdPuntoVenta&IdPersonal&IdRegistro&Seccion&'REGISTRO FOTOGRAFICO2', Null())                                                         as Foto2,
+        Applymap('Map_RespuestaDos', IdPuntoVenta&IdPersonal&IdRegistro&Seccion&'REGISTRO FOTOGRAFICO3', Null())                                                         as Foto3,
+        Applymap('Map_RespuestaDos', IdPuntoVenta&IdPersonal&IdRegistro&Seccion&'NOMBRE DE ESTABLECIMIENTO', Null())                                                     as Establecimiento,
+        Applymap('Map_RespuestaUno', IdPuntoVenta&IdPersonal&IdRegistro&Seccion&'NOMBRE DE LA ACTIVIDAD', Null())                                                        as Actividad,
+        Applymap('Map_RespuestaDos', IdPuntoVenta&IdPersonal&IdRegistro&Seccion&'ACTIVIDAD REALIZADA', Null())                                                           as ActividadRealizada,  
+        Applymap('Map_RespuestaDos', IdPuntoVenta&IdPersonal&IdRegistro&Seccion&'CODIGO DE LA MAQUINA PRINCIPAL', Null())                                                as CodigoMaquinaP,
+        Applymap('Map_RespuestaDos', IdPuntoVenta&IdPersonal&IdRegistro&Seccion&'CODIGO DE LA MAQUINA SECUNDARIO ( si es mas de uno, separarlo con un espacio)', Null()) as CodigoMaquinaS,
+        Applymap('Map_RespuestaDos', IdPuntoVenta&IdPersonal&IdRegistro&Seccion&'DIGITE EL # DE PERSONAS ASESORADAS', Null())                                            as PersonasAsesoradas,
+        Applymap('Map_RespuestaDos', IdPuntoVenta&IdPersonal&IdRegistro&Seccion&'VENTA TOTAL (ACUMULADA JORNADA)', Null())                                               as VentaTotal,
+        Applymap('Map_RespuestaDos', IdPuntoVenta&IdPersonal&IdRegistro&Seccion&'IMPACTADOS REALES', Null())                                                             as ImpactadosReales,
+        Applymap('Map_RespuestaDos', IdPuntoVenta&IdPersonal&IdRegistro&Seccion&'CODIGO DE LA MAQUINA', Null())                                                          as CodigoMaquinaD,
+        Applymap('Map_RespuestaUno', IdPuntoVenta&IdPersonal&IdRegistro&Seccion&'SECTOR', Null())                                                                        as Sector,
+        Applymap('Map_RespuestaUno', IdPuntoVenta&IdPersonal&IdRegistro&Seccion&'TIPO DE EVENTO', Null())                                                                as TipoEvento,
+        Applymap('Map_RespuestaUno', IdPuntoVenta&IdPersonal&IdRegistro&Seccion&'PRODUCTO DE BEBIDAS CALIENTES', Null())                                                 as BebidasCalientes,
+        Applymap('Map_RespuestaUno', IdPuntoVenta&IdPersonal&IdRegistro&Seccion&'PRODUCTO DE SNACKS', Null())                                                            as Snacks,
+        Applymap('Map_RespuestaDos', IdPuntoVenta&IdPersonal&IdRegistro&Seccion&'PRODUCTO DE BEBIDAS FRIAS', Null())                                                     as BebidasFrias,
+        Applymap('Map_RespuestaDos', IdPuntoVenta&IdPersonal&IdRegistro&Seccion&'# DEGUSTACIONES ENTREGADAS', Null())                                                    as Degustaciones,
+        Applymap('Map_RespuestaDos', IdPuntoVenta&IdPersonal&IdRegistro&Seccion&'FOTO DEL CODIGO DE LA MAQUINA', Null())                                                 as FotoCodigo
+    Resident Actividades_Tmp1;
+    Drop Table Actividades_Tmp1;
+
+NoConcatenate
+Actividades_Tmp3:
+	LOAD
+        IdPuntoVenta, 
+        IdPersonal,
+        Fecha,
+        IdRegistro,
+        Seccion,
+        '$(RutaServerUno)'&Date(Fecha,'YYYY')&'/'&Date(Fecha,'MM')&'/'&'1886'&'/'&Foto1       as Foto1,
+        '$(RutaServerUno)'&Date(Fecha,'YYYY')&'/'&Date(Fecha,'MM')&'/'&'1886'&'/'&Foto2       as Foto2,
+        '$(RutaServerUno)'&Date(Fecha,'YYYY')&'/'&Date(Fecha,'MM')&'/'&'1886'&'/'&Foto3       as Foto3,
+        Capitalize(Establecimiento)                                                           as Establecimiento,
+        Capitalize(Actividad)                                                                 as Actividad, 
+        Capitalize(ActividadRealizada)                                                        as ActividadRealizada, 
+        CodigoMaquinaP,
+        CodigoMaquinaS,
+        PersonasAsesoradas,
+        VentaTotal,
+        ImpactadosReales,
+        CodigoMaquinaD,
+        Capitalize(Sector)                                                                    as Sector,
+        Capitalize(TipoEvento)                                                                as TipoEvento,
+        Capitalize(BebidasCalientes)                                                          as BebidasCalientes,
+        Capitalize(Snacks)                                                                    as Snacks,
+        Capitalize(BebidasFrias)                                                              as BebidasFrias,
+        Degustaciones,
+        '$(RutaServerUno)'&Date(Fecha,'YYYY')&'/'&Date(Fecha,'MM')&'/'&'1886'&'/'&FotoCodigo  as FotoCodigo
+    Resident Actividades_Tmp2;
+    Drop Table Actividades_Tmp2;
+
+
+/*---------*/
+NoConcatenate
+ActividadesEncuesta:
+    LOAD Distinct
+        IdPuntoVenta&'-'&IdPersonal&'-'&Fecha	as CK.Key1,
+        IdPuntoVenta							as ActividadesEncuesta.IdPuntoVenta,
+        IdPersonal								as ActividadesEncuesta.IdPersonal,
+        Fecha									as ActividadesEncuesta.Fecha,
+        IdRegistro								as ActividadesEncuesta.IdRegistro,
+        Seccion  								as ActividadesEncuesta.Seccion,
+        Establecimiento                         as ActividadesEncuesta.Establecimiento,
+        Sector									as ActividadesEncuesta.Sector,
+        Actividad						    	as ActividadesEncuesta.Actividad,
+        ActividadRealizada                      as ActividadesEncuesta.ActividadRealizada, 
+        TipoEvento							    as ActividadesEncuesta.TipoEvento,
+        BebidasCalientes					    as ActividadesEncuesta.BebidasCalientes,
+        BebidasFrias					        as ActividadesEncuesta.BebidasFrias,
+        Snacks					                as ActividadesEncuesta.Snacks,
+        Degustaciones					        as ActividadesEncuesta.Degustaciones,
+        CodigoMaquinaP					        as ActividadesEncuesta.CodigoMaquinaP,
+        CodigoMaquinaS					        as ActividadesEncuesta.CodigoMaquinaS,
+        PersonasAsesoradas					    as ActividadesEncuesta.PersonasAsesoradas,
+        VentaTotal					            as ActividadesEncuesta.VentaTotal,
+        ImpactadosReales					    as ActividadesEncuesta.ImpactadosReales,
+        CodigoMaquinaD					        as ActividadesEncuesta.CodigoMaquinaD,
+        Foto1								    as ActividadesEncuesta.Foto1,
+        Foto2								    as ActividadesEncuesta.Foto2,
+        Foto3								    as ActividadesEncuesta.Foto3,
+        FotoCodigo								as ActividadesEncuesta.FotoCodigo
+    Resident Actividades_Tmp3;
+    DROP Table Actividades_Tmp3;
+
+STORE ActividadesEncuesta INTO [lib://COMP_DataMart (eficacia_admin_analitica)/SGI/Colombia/NOVAVENTA/_ActividadesEncuesta_$(Anno)$(Mes).qvd];
+Drop Table ActividadesEncuesta;

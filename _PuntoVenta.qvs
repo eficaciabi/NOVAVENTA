@@ -1,0 +1,54 @@
+﻿/*-----------------------------------------------------------------------------------------------------------------------------------------------
+Compañia: 		Eficacia S.A
+Proceso:		Transformacion Punto de Venta
+Desarrollador: 	María de los Ángeles Delgado
+Email:			maria_adelgado@eficacia.com.co
+Fecha			2024/03/05 (YYYY/MM/DD)
+-----------------------------------------------------------------------------------------------------------------------------------------------*/
+PuntoVenta_Tmp1:
+    LOAD
+        PUNTO_VENTA_ID			as Id_PuntoVenta,
+        CIUDAD					as NombreCiudad,
+        NOMBRE					as Nombre_Pdv,
+        CADENA					as Cadena,
+        CANAL					as Canal,
+        SUBCANAL				as SubCanal,
+        REGIONAL				as Regional,
+        FORMATO                 as Formato
+    FROM 
+    [lib://COMP_Stage (eficacia_admin_analitica)/SGI/Colombia/NOVAVENTA/IPV_PuntoVenta.qvd]
+    (qvd);
+
+/*--------------*/
+NoConcatenate
+PuntoVenta_Tmp2:
+    LOAD Distinct
+        Id_PuntoVenta,
+        Capitalize(NombreCiudad)	                                    as NombreCiudad,
+        Capitalize(Nombre_Pdv)                                          as Nombre_Pdv,
+        Capitalize(Cadena)                                              as Cadena,
+        Capitalize(Canal)                                               as Canal,
+        Capitalize(SubCanal)                                            as SubCanal,
+        Capitalize(Regional)                                            as Regional,
+        Capitalize(Formato)                                             as Formato
+    Resident PuntoVenta_Tmp1;
+    DROP Table PuntoVenta_Tmp1;
+
+/*----------*/
+NoConcatenate
+PuntoVenta:
+    LOAD Distinct
+        Id_PuntoVenta		as SK.PuntoVenta,
+        Id_PuntoVenta		as PuntoVenta.Id_PuntoVenta,
+        Cadena				as PuntoVenta.Cadena,
+        NombreCiudad		as PuntoVenta.NombreCiudad,
+        Canal				as PuntoVenta.Canal,
+        Nombre_Pdv			as PuntoVenta.Nombre_Pdv,
+        SubCanal			as PuntoVenta.SubCanal,
+        Regional			as PuntoVenta.Regional,
+        Formato             as PuntoVenta.Formato
+    Resident PuntoVenta_Tmp2;
+    DROP Table PuntoVenta_Tmp2;
+
+STORE PuntoVenta INTO [lib://COMP_DataMart (eficacia_admin_analitica)/SGI/Colombia/NOVAVENTA/_PuntoVenta.qvd];
+Drop Table PuntoVenta;

@@ -1,0 +1,62 @@
+﻿/*-----------------------------------------------------------------------------------------------------------------------------------------------
+Compañia: 		Eficacia S.A
+Proceso:		LinkTable
+Desarrollador:  María de los Ángeles Delgado
+Email:          maria_adelgado@eficacia.com.co
+Fecha           2024/03/05 (YYYY/MM/DD)
+Estado:         Activo
+-----------------------------------------------------------------------------------------------------------------------------------------------*/
+LinkTable_Tmp1:
+    LOAD DISTINCT
+        ActividadesEncuesta.IdPuntoVenta              as LinkTable.IdPuntoVenta,
+        ActividadesEncuesta.IdPersonal                as LinkTable.IdPersona,
+        ActividadesEncuesta.Fecha                     as LinkTable.Fecha
+    FROM 
+    [lib://COMP_DataMart (eficacia_admin_analitica)/SGI/Colombia/NOVAVENTA/_ActividadesEncuesta_$(Anno)$(Mes).qvd]
+    (qvd);   
+
+NoConcatenate
+LinkTable_Tmp:
+    Load Distinct
+        LinkTable.IdPuntoVenta,
+        LinkTable.IdPersona,
+        LinkTable.Fecha
+    Resident LinkTable_Tmp1; 
+    Drop Table LinkTable_Tmp1;
+
+NoConcatenate
+LinkTable:
+   LOAD Distinct
+        LinkTable.IdPuntoVenta&'-'&LinkTable.IdPersona&'-'&LinkTable.Fecha 					                as CK.Key1,
+        LinkTable.IdPuntoVenta                                                                              as SK.PuntoVenta,
+        LinkTable.IdPersona                                                                                 as SK.Persona,	
+        LinkTable.Fecha																		                as SK.Fecha
+    Resident LinkTable_Tmp;
+
+STORE LinkTable INTO [lib://COMP_DataMart (eficacia_admin_analitica)/SGI/Colombia/NOVAVENTA/_LinkTable_$(Anno)$(Mes).qvd];
+Drop Table LinkTable;
+
+/*---------*/
+Calendario_Tmp:
+    LOAD Distinct
+        LinkTable.Fecha     as Fecha
+    Resident LinkTable_Tmp;
+    Drop Table LinkTable_Tmp;
+    
+/*---------*/
+NoConcatenate
+Calendario:
+    LOAD
+        Fecha                                                       as SK.Fecha,
+        Fecha                                                       as Calendario.Fecha,       
+        Year(Fecha)&'-'&Num(Month(Fecha),'00')                      as Calendario.Periodo,
+        Year(Fecha)&Num(Month(Fecha),'00')                          as Calendario.NumPeriodo,
+        Month(Fecha)&'-'&Day(Fecha)                                 as Calendario.Diames,
+        Month(Fecha) 		                                        as Calendario.Mes,
+        Year(Fecha)                                                 as Calendario.Año,
+        WeekDay(Fecha)                                              as Calendario.DiaSemana
+    Resident Calendario_Tmp;
+    Drop Table Calendario_Tmp;
+
+STORE Calendario INTO [lib://COMP_DataMart (eficacia_admin_analitica)/SGI/Colombia/NOVAVENTA/_Calendario_$(Anno)$(Mes).qvd] (qvd);
+Drop Table Calendario;
